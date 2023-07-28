@@ -1,6 +1,6 @@
 # uvicorn main:app --reload
 
-from fastapi import FastAPI, Depends, status, Response
+from fastapi import FastAPI, Depends, status, Response, HTTPException
 from schemas import Blog
 import models
 from database import engine, session_local
@@ -34,13 +34,27 @@ def get_blogs(db: Session=Depends(get_db)):
     return blogs
 
 
-@app.get('/blog/{id}', status_code=200)
+@app.get('/blog/get/{id}', status_code=200)
 def get_blogs_via_id(id: int, response: Response, db: Session=Depends(get_db)):
     blogs = db.query(models.Blog).filter(models.Blog.id == id).first()
+
+    # if blogs:
+    #     return blogs
+    
+    # response.status_code = status.HTTP_404_NOT_FOUND
+    # return {'Details:': f'Not Found {id}'}
 
     if blogs:
         return blogs
     
-    response.status_code = status.HTTP_404_NOT_FOUND
-    return {'Details:': f'Not Found {id}'}
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Not Found {id}')
 
+
+@app.delete('/blog/delete/{id}', status_code=status.HTTP_204_NO_CONTENT)
+def delete(id: int, db: Session=Depends(get_db)):
+    blog = db.query(models.Blog).filter(models.Blog.id == id).delete(synchronize_session=False)
+    if blog:
+        db.commit()
+        raise HTTPException(status_code=status.HTTP_200_OK, detail=f'Deleted {id}') 
+    
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Not Found {id}') 
