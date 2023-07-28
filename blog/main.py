@@ -59,13 +59,15 @@ def delete(id: int, db: Session=Depends(get_db)):
     
     raise HTTPException(status_code=status.HTTP_204_NO_CONTENT, detail=f'Blog not found with id={id}') 
 
-
+# Update is a Bulk Operation
 @app.put('/blog/update/{id}', status_code=status.HTTP_202_ACCEPTED)
 def update(id: int, request: schemas.Blog, db: Session=Depends(get_db)):
     req = dict(request)
-    blog = db.query(models.Blog).filter(models.Blog.id == id).update(req)
+    blog = db.query(models.Blog).filter(models.Blog.id == id)
     
-    if blog > 0:
+    # Delete can be done this way too.
+    if blog.first():
+        blog.update(req)
         db.commit()
         raise HTTPException(status_code=status.HTTP_200_OK, detail=f'Updated {id}')
     
